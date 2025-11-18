@@ -16,7 +16,7 @@ jobs:
 
     env:
       LIB_PROJ: PromptProvider/PromptProvider.csproj
-      TEST_PROJ: tests/PromptProvider.Tests/PromptProvider.Tests.csproj
+      TEST_PROJ: Tests/PromptProvider.Tests/PromptProvider.Tests.csproj
 
     steps:
       - uses: actions/checkout@v4
