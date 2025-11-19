@@ -204,7 +204,7 @@ public class LangfuseService : ILangfuseService
             _logger.LogInformation("Creating new prompt version for '{PromptName}' in Langfuse", request.Name);
 
             var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
-            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            using var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("/api/public/v2/prompts", httpContent, cancellationToken);
             response.EnsureSuccessStatusCode();
