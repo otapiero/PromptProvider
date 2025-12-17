@@ -5,22 +5,21 @@ using PromptProvider.Options;
 
 namespace PromptProvider.Services;
 
-public class ConfigurationDefaultPromptsProvider : IDefaultPromptsProvider
+public class ConfigurationDefaultPromptsProvider(
+    IOptions<PromptsOptions> options,
+    IOptions<PromptKeyOptions> promptKeyOptions) : IDefaultPromptsProvider
 {
-    private readonly PromptsOptions _options;
-    private readonly PromptKeyOptions _promptKeyOptions;
-
-    public ConfigurationDefaultPromptsProvider(
-        IOptions<PromptsOptions> options,
-        IOptions<PromptKeyOptions> promptKeyOptions)
-    {
-        _options = options.Value;
-        _promptKeyOptions = promptKeyOptions.Value;
-    }
+    private readonly PromptsOptions _options = options.Value;
+    private readonly PromptKeyOptions _promptKeyOptions = promptKeyOptions.Value;
 
     public IReadOnlyDictionary<string, string> GetDefaults()
     {
         return _options.Defaults;
+    }
+
+    public IReadOnlyDictionary<string, ChatMessage[]> GetChatDefaults()
+    {
+        return _options.ChatDefaults;
     }
 
     public IReadOnlyDictionary<string, PromptConfiguration> GetPromptKeys()

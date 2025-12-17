@@ -10,6 +10,11 @@ public interface IPromptService
     Task<PromptResponse> CreatePromptAsync(CreatePromptRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Create a new chat prompt version in Langfuse
+    /// </summary>
+    Task<ChatPromptResponse> CreateChatPromptAsync(CreateChatPromptRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get a prompt by key with optional version or label. Falls back to local defaults if Langfuse is unavailable.
     /// </summary>
     /// <param name="promptKey">The prompt key/name</param>
@@ -17,6 +22,15 @@ public interface IPromptService
     /// <param name="label">Optional label (e.g., "production", "latest")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task<PromptResponse?> GetPromptAsync(string promptKey, int? version = null, string? label = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get a chat prompt by key with optional version or label. Falls back to local defaults if Langfuse is unavailable.
+    /// </summary>
+    /// <param name="promptKey">The prompt key/name</param>
+    /// <param name="version">Optional specific version number</param>
+    /// <param name="label">Optional label (e.g., "production", "latest")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<ChatPromptResponse?> GetChatPromptAsync(string promptKey, int? version = null, string? label = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get all prompts from Langfuse

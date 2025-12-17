@@ -19,6 +19,20 @@ public interface ILangfuseService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Get a chat prompt by name from Langfuse API.
+    /// </summary>
+    /// <param name="promptName">The name of the chat prompt</param>
+    /// <param name="version">Optional version of the prompt to retrieve</param>
+    /// <param name="label">Optional label of the prompt (defaults to "production" if no label or version is set)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The Langfuse chat prompt model</returns>
+    Task<LangfuseChatPromptModel?> GetChatPromptAsync(
+        string promptName,
+        int? version = null,
+        string? label = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get all prompts from Langfuse API.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -33,6 +47,16 @@ public interface ILangfuseService
     /// <returns>The created prompt response</returns>
     Task<CreateLangfusePromptResponse> CreatePromptAsync(
         CreateLangfusePromptRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Create a new version for the chat prompt with the given name in Langfuse API.
+    /// </summary>
+    /// <param name="request">The chat prompt creation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The created chat prompt response</returns>
+    Task<CreateLangfuseChatPromptResponse> CreateChatPromptAsync(
+        CreateLangfuseChatPromptRequest request,
         CancellationToken cancellationToken = default);
 
     /// <summary>
