@@ -47,6 +47,12 @@ public class LangfuseService : ILangfuseService
         var authValue = Convert.ToBase64String(
             Encoding.UTF8.GetBytes($"{_options.PublicKey}:{_options.SecretKey}"));
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authValue);
+
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl))
+        {
+            throw new InvalidOperationException("Langfuse BaseUrl is not configured.");
+        }
+
         _httpClient.BaseAddress = new Uri(_options.BaseUrl);
     }
 
@@ -127,6 +133,79 @@ public class LangfuseService : ILangfuseService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error fetching prompt '{PromptName}' from Langfuse", promptName);
+            throw;
+        }
+    }
+
+    public async Task<LangfuseChatPromptModel?> GetChatPromptAsync(
+        string promptName,
+        int? version = null,
+        string? label = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfNotConfigured();
+
+        if (string.IsNullOrWhiteSpace(promptName))
+        {
+            throw new ArgumentException("Prompt name is required.", nameof(promptName));
+        }
+
+        // Default to "production" label if neither version nor label is specified
+        if (version is null && string.IsNullOrWhiteSpace(label))
+        {
+            label = "production";
+        }
+
+        try
+        {
+            var queryParams = new List<string>();
+            if (version.HasValue)
+            {
+                queryParams.Add($"version={version.Value}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                queryParams.Add($"label={Uri.EscapeDataString(label)}");
+            }
+
+            var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+            var requestUri = $"/api/public/v2/prompts/{Uri.EscapeDataString(promptName)}{queryString}";
+
+            _logger.LogInformation("Fetching chat prompt '{PromptName}' from Langfuse (version: {Version}, label: {Label})",
+                promptName, version, label);
+
+            var response = await _httpClient.GetAsync(requestUri, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Chat prompt '{PromptName}' not found in Langfuse", promptName);
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            var prompt = JsonSerializer.Deserialize<LangfuseChatPromptModel>(content, JsonOptions);
+
+            _logger.LogInformation("Successfully fetched chat prompt '{PromptName}' version {Version}",
+                promptName, prompt?.Version);
+
+            return prompt;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error fetching chat prompt '{PromptName}' from Langfuse", promptName);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize chat prompt '{PromptName}' from Langfuse", promptName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching chat prompt '{PromptName}' from Langfuse", promptName);
             throw;
         }
     }
@@ -231,6 +310,68 @@ public class LangfuseService : ILangfuseService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error creating prompt '{PromptName}' in Langfuse", request.Name);
+            throw;
+        }
+    }
+
+    public async Task<CreateLangfuseChatPromptResponse> CreateChatPromptAsync(
+        CreateLangfuseChatPromptRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfNotConfigured();
+
+        if (request is null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new ArgumentException("Prompt name is required.", nameof(request));
+        }
+
+        if (request.Prompt is null || request.Prompt.Length == 0)
+        {
+            throw new ArgumentException("Chat messages are required.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Type))
+        {
+            throw new ArgumentException("Prompt type is required.", nameof(request));
+        }
+
+        try
+        {
+            _logger.LogInformation("Creating new chat prompt version for '{PromptName}' in Langfuse", request.Name);
+
+            var jsonContent = JsonSerializer.Serialize(request, JsonOptions);
+            using var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/api/public/v2/prompts", httpContent, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var createdPrompt = JsonSerializer.Deserialize<CreateLangfuseChatPromptResponse>(responseContent, JsonOptions)
+                ?? throw new InvalidOperationException("Failed to deserialize created chat prompt response");
+
+            _logger.LogInformation("Successfully created chat prompt '{PromptName}' version {Version}",
+                createdPrompt.Name, createdPrompt.Version);
+
+            return createdPrompt;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error creating chat prompt '{PromptName}' in Langfuse", request.Name);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to serialize/deserialize chat prompt '{PromptName}'", request.Name);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating chat prompt '{PromptName}' in Langfuse", request.Name);
             throw;
         }
     }
